@@ -1,0 +1,1013 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+
+# Task 1 a
+
+
+library(dplyr)
+library(tidyr)
+
+# Load the dataset
+students <- read.csv("Studentmarks.csv", stringsAsFactors = FALSE)
+
+# Split dob using "/" separator
+students <- students %>%
+  separate(dob, into = c("date", "month", "year"), sep = "/", convert = TRUE)
+
+# Rename columns
+colnames(students) <- c("StudentID", "Studentname", "date", "month", "year", "X2020", "X2021", "X2022")
+
+# Calculate age1 and age2
+students <- students %>%
+  mutate(
+    dob_full = as.Date(paste(year, month, date, sep = "-"), format = "%Y-%m-%d"),
+    age1 = as.numeric(difftime(Sys.Date(), dob_full, units = "days")) / 365.25,
+    age2 = as.numeric(format(Sys.Date(), "%Y")) - year
+  ) %>%
+  select(-dob_full)
+
+print(students)
+
+
+
+#The code reads the CSV file. 
+#It splits the date of birth into day, month, and year. 
+#Each part is converted to numbers. 
+#It renames the columns for clarity. 
+#It creates a full date. Then it calculates two ages. 
+#One uses the exact date, the other uses only the year.
+```
+
+```{r}
+
+# Task 1 b
+
+
+library(ggplot2)
+
+# Reshape data for plotting
+students_long <- students %>%
+  pivot_longer(cols = c(X2020, X2021, X2022),
+               names_to = "ExamYear", values_to = "Marks")
+
+# Scatter plot with Studentname on y-axis
+ggplot(students_long, aes(x = Marks, y = Studentname, color = ExamYear)) +
+  geom_point(size = 3) +
+  labs(title = "Student Marks by Year", x = "Marks", y = "Studentname") +
+  theme_minimal()
+
+
+
+#The code changes the data shape for plotting. 
+#It puts all yearly marks into one column. 
+#It uses ggplot2 to draw a scatter plot. 
+#Each point shows a student’s marks. 
+#Colours show different years. 
+#It helps compare how each student performed across 2020, 2021, and 2022.
+```
+
+```{r}
+
+# Task 1 c
+
+
+# Calculate total marks
+students_rank <- students %>%
+  mutate(Total = X2020 + X2021 + X2022) %>%
+  filter(Total >= 200) %>%
+  arrange(desc(Total))
+
+# Plot ranking
+ggplot(students_rank, aes(x = reorder(Studentname, -Total), y = Total)) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Total Marks of Students (>=200) - Descending Order",
+       x = "Student Name", y = "Total Marks") +
+  theme_minimal()
+
+#The code adds the marks from all three years. 
+#It filters students who scored 200 or more. 
+#Then it arranges them from highest to lowest. 
+#It uses ggplot2 to make a bar chart. 
+#The chart shows which students performed best based on total marks.
+```
+
+```{r}
+#Task 1 d
+
+#https://latrobe.zoom.us/rec/share/yp2TS1sRWWsh43842Qrz9xBLyNzmDh1k3Z9PMTaFMrDUtJBWWcXTj7CB2o0JQXgJ.kfjnLMzWjSZBMmnz?startTime=1760341374000
+#Passcode: FCJW+mw3
+```
+
+
+```{r}
+
+# Task 2 a
+
+library(dplyr)
+
+
+fireDirty = read.csv("fire_2019_dirty.csv")
+
+str(fireDirty)
+
+cat("\n")
+
+summary(fireDirty)
+
+totalMissing = sum(is.na(fireDirty))
+cat("Total NA values in dataset:", totalMissing, "\n\n")
+
+missingPerColumn = colSums(is.na(fireDirty))
+cat("Missing values per column:\n")
+print(missingPerColumn)
+
+columnsWithMissing = names(missingPerColumn[missingPerColumn > 0])
+cat("\nColumns containing NA:\n")
+print(columnsWithMissing)
+
+percentageMissing = (missingPerColumn / nrow(fireDirty)) * 100
+cat("\nPercentage missing per column:\n")
+print(round(percentageMissing, 2))
+
+
+brightnessQ1 = quantile(fireDirty$brightness, 0.25, na.rm = TRUE)
+brightnessQ3 = quantile(fireDirty$brightness, 0.75, na.rm = TRUE)
+brightnessIqr = brightnessQ3 - brightnessQ1
+brightnessLowerBound = brightnessQ1 - 1.5 * brightnessIqr
+brightnessUpperBound = brightnessQ3 + 1.5 * brightnessIqr
+brightnessOutliers = sum(fireDirty$brightness < brightnessLowerBound | 
+                         fireDirty$brightness > brightnessUpperBound, 
+                         na.rm = TRUE)
+cat("Outliers:", brightnessOutliers, "\n")
+
+
+confidenceQ1 = quantile(fireDirty$confidence, 0.25, na.rm = TRUE)
+confidenceQ3 = quantile(fireDirty$confidence, 0.75, na.rm = TRUE)
+confidenceIqr = confidenceQ3 - confidenceQ1
+confidenceLowerBound = confidenceQ1 - 1.5 * confidenceIqr
+confidenceUpperBound = confidenceQ3 + 1.5 * confidenceIqr
+confidenceOutliers = sum(fireDirty$confidence < confidenceLowerBound | 
+                         fireDirty$confidence > confidenceUpperBound, 
+                         na.rm = TRUE)
+cat("Outliers:", confidenceOutliers, "\n")
+
+
+brightT31Q1 = quantile(fireDirty$bright_t31, 0.25, na.rm = TRUE)
+brightT31Q3 = quantile(fireDirty$bright_t31, 0.75, na.rm = TRUE)
+brightT31Iqr = brightT31Q3 - brightT31Q1
+brightT31LowerBound = brightT31Q1 - 1.5 * brightT31Iqr
+brightT31UpperBound = brightT31Q3 + 1.5 * brightT31Iqr
+brightT31Outliers = sum(fireDirty$bright_t31 < brightT31LowerBound | 
+                        fireDirty$bright_t31 > brightT31UpperBound, 
+                        na.rm = TRUE)
+cat("Outliers:", brightT31Outliers, "\n")
+
+
+frpQ1 = quantile(fireDirty$frp, 0.25, na.rm = TRUE)
+frpQ3 = quantile(fireDirty$frp, 0.75, na.rm = TRUE)
+frpIqr = frpQ3 - frpQ1
+frpLowerBound = frpQ1 - 1.5 * frpIqr
+frpUpperBound = frpQ3 + 1.5 * frpIqr
+frpOutliers = sum(fireDirty$frp < frpLowerBound | 
+                  fireDirty$frp > frpUpperBound, 
+                  na.rm = TRUE)
+cat("Outliers:", frpOutliers, "\n")
+
+
+# The fire_2019_dirty.csv dataset contains 12,607 missing values across 7 features. 
+# Each feature has exactly 1,801 NAs. This represents 5 percent missing data. 
+# Four numerical and three categorical features have missing data.
+
+# Numerical features include brightness, confidence, bright_t31, and frp. 
+# I will use local median imputation. The method uses 5 nearby observations. 
+# Brightness contains 1,400 outliers. Confidence has 301 outliers. 
+# Bright_t31 shows 39 outliers. FRP exhibits 3,275 outliers. 
+# Median is robust to outliers. Local median is preferred over global median. 
+# Global median may change the distribution. Local median preserves sequential 
+# patterns by considering nearby values.
+
+# Categorical features include satellite, instrument, and daynight. 
+# I will use local mode imputation. Nearby fire observations share similar patterns. 
+# Local mode considers surrounding observations. Global mode uses the entire dataset. 
+# Local mode is better for fire monitoring data. Fire detections close together 
+# share similar characteristics.
+```
+
+```{r}
+
+# Task 2 b 
+
+library(dplyr)
+library(ggplot2)
+
+fireDirty = read.csv("fire_2019_dirty.csv")
+fireClean = read.csv("fire_2019_clean.csv")
+
+cat("Dirty data rows:", nrow(fireDirty), "\n")
+cat("Clean data rows:", nrow(fireClean), "\n\n")
+
+
+fireModified = fireDirty
+
+brightnessNaRows = which(is.na(fireModified$brightness))
+confidenceNaRows = which(is.na(fireModified$confidence))
+brightT31NaRows = which(is.na(fireModified$bright_t31))
+frpNaRows = which(is.na(fireModified$frp))
+
+
+cat("Brightness missing rows:", length(brightnessNaRows), "\n")
+cat("Confidence missing rows:", length(confidenceNaRows), "\n")
+cat("Bright_t31 missing rows:", length(brightT31NaRows), "\n")
+cat("FRP missing rows:", length(frpNaRows), "\n\n")
+
+
+imputeLocalMedian = function(x, window = 5) {
+  halfWindow = floor(window / 2)
+  naPositions = which(is.na(x))
+  
+  for (i in naPositions) {
+    start = max(1, i - halfWindow)
+    end = min(length(x), i + halfWindow)
+    
+    nearbyValues = x[start:end]
+    nearbyValues = nearbyValues[!is.na(nearbyValues)]
+    
+    if (length(nearbyValues) > 0) {
+      x[i] = median(nearbyValues, na.rm = TRUE)
+    }
+  }
+  
+  return(x)
+}
+
+
+fireModified$brightness = imputeLocalMedian(fireModified$brightness, window = 5)
+
+
+fireModified$confidence = imputeLocalMedian(fireModified$confidence, window = 5)
+
+
+fireModified$bright_t31 = imputeLocalMedian(fireModified$bright_t31, window = 5)
+
+
+fireModified$frp = imputeLocalMedian(fireModified$frp, window = 5)
+
+
+cat("Statistical comparision of brightness\n")
+
+brightnessImputed = fireModified$brightness[brightnessNaRows]
+brightnessActual = fireClean$brightness[brightnessNaRows]
+
+brightnessAbsoluteDeviation = abs(brightnessImputed - brightnessActual)
+brightnessPercentDeviation = (brightnessAbsoluteDeviation / brightnessActual) * 100
+
+brightnessMeanDeviation = mean(brightnessAbsoluteDeviation)
+brightnessMedianDeviation = median(brightnessAbsoluteDeviation)
+brightnessMaxDeviation = max(brightnessAbsoluteDeviation)
+brightnessMinDeviation = min(brightnessAbsoluteDeviation)
+brightnessSdDeviation = sd(brightnessAbsoluteDeviation)
+
+cat("Mean of actual clean values:", round(mean(brightnessActual), 2), "\n")
+cat("Median of actual clean values:", round(median(brightnessActual), 2), "\n\n")
+
+cat("Deviation Statistics:\n")
+cat("  Mean Absolute Deviation:", round(brightnessMeanDeviation, 2), "\n")
+cat("  Median Absolute Deviation:", round(brightnessMedianDeviation, 2), "\n")
+cat("  Min Deviation:", round(brightnessMinDeviation, 2), "\n")
+cat("  Max Deviation:", round(brightnessMaxDeviation, 2), "\n")
+cat("  SD of Deviation:", round(brightnessSdDeviation, 2), "\n")
+cat("  Mean Percent Deviation:", round(mean(brightnessPercentDeviation), 2), "%\n\n")
+
+brightnessMeanOriginal = mean(fireClean$brightness)
+brightnessMeanModified = mean(fireModified$brightness)
+brightnessMedianOriginal = median(fireClean$brightness)
+brightnessMedianModified = median(fireModified$brightness)
+
+cat("Overall Dataset Impact:\n")
+cat("  Clean Mean:", round(brightnessMeanOriginal, 2), "\n")
+cat("  Modified Mean:", round(brightnessMeanModified, 2), "\n")
+cat("  Difference:", round(brightnessMeanModified - brightnessMeanOriginal, 2), "\n")
+cat("  Clean Median:", round(brightnessMedianOriginal, 2), "\n")
+cat("  Modified Median:", round(brightnessMedianModified, 2), "\n")
+cat("  Difference:", round(brightnessMedianModified - brightnessMedianOriginal, 2), "\n\n")
+
+
+cat("Statistical comparision of confidence\n")
+
+confidenceImputed = fireModified$confidence[confidenceNaRows]
+confidenceActual = fireClean$confidence[confidenceNaRows]
+
+confidenceAbsoluteDeviation = abs(confidenceImputed - confidenceActual)
+confidencePercentDeviation = (confidenceAbsoluteDeviation / confidenceActual) * 100
+
+confidenceMeanDeviation = mean(confidenceAbsoluteDeviation)
+confidenceMedianDeviation = median(confidenceAbsoluteDeviation)
+confidenceMaxDeviation = max(confidenceAbsoluteDeviation)
+confidenceMinDeviation = min(confidenceAbsoluteDeviation)
+confidenceSdDeviation = sd(confidenceAbsoluteDeviation)
+
+cat("Mean of actual clean values:", round(mean(confidenceActual), 2), "\n")
+cat("Median of actual clean values:", round(median(confidenceActual), 2), "\n\n")
+
+cat("Deviation Statistics:\n")
+cat("  Mean Absolute Deviation:", round(confidenceMeanDeviation, 2), "\n")
+cat("  Median Absolute Deviation:", round(confidenceMedianDeviation, 2), "\n")
+cat("  Min Deviation:", round(confidenceMinDeviation, 2), "\n")
+cat("  Max Deviation:", round(confidenceMaxDeviation, 2), "\n")
+cat("  SD of Deviation:", round(confidenceSdDeviation, 2), "\n")
+cat("  Mean Percent Deviation:", round(mean(confidencePercentDeviation), 2), "%\n\n")
+
+confidenceMeanOriginal = mean(fireClean$confidence)
+confidenceMeanModified = mean(fireModified$confidence)
+confidenceMedianOriginal = median(fireClean$confidence)
+confidenceMedianModified = median(fireModified$confidence)
+
+cat("Overall Dataset Impact:\n")
+cat("  Clean Mean:", round(confidenceMeanOriginal, 2), "\n")
+cat("  Modified Mean:", round(confidenceMeanModified, 2), "\n")
+cat("  Difference:", round(confidenceMeanModified - confidenceMeanOriginal, 2), "\n")
+cat("  Clean Median:", round(confidenceMedianOriginal, 2), "\n")
+cat("  Modified Median:", round(confidenceMedianModified, 2), "\n")
+cat("  Difference:", round(confidenceMedianModified - confidenceMedianOriginal, 2), "\n\n")
+
+
+cat("Statistical comparision of bright_t31\n")
+
+brightT31Imputed = fireModified$bright_t31[brightT31NaRows]
+brightT31Actual = fireClean$bright_t31[brightT31NaRows]
+
+brightT31AbsoluteDeviation = abs(brightT31Imputed - brightT31Actual)
+brightT31PercentDeviation = (brightT31AbsoluteDeviation / brightT31Actual) * 100
+
+brightT31MeanDeviation = mean(brightT31AbsoluteDeviation)
+brightT31MedianDeviation = median(brightT31AbsoluteDeviation)
+brightT31MaxDeviation = max(brightT31AbsoluteDeviation)
+brightT31MinDeviation = min(brightT31AbsoluteDeviation)
+brightT31SdDeviation = sd(brightT31AbsoluteDeviation)
+
+cat("Mean of actual clean values:", round(mean(brightT31Actual), 2), "\n")
+cat("Median of actual clean values:", round(median(brightT31Actual), 2), "\n\n")
+
+cat("Deviation Statistics:\n")
+cat("  Mean Absolute Deviation:", round(brightT31MeanDeviation, 2), "\n")
+cat("  Median Absolute Deviation:", round(brightT31MedianDeviation, 2), "\n")
+cat("  Min Deviation:", round(brightT31MinDeviation, 2), "\n")
+cat("  Max Deviation:", round(brightT31MaxDeviation, 2), "\n")
+cat("  SD of Deviation:", round(brightT31SdDeviation, 2), "\n")
+cat("  Mean Percent Deviation:", round(mean(brightT31PercentDeviation), 2), "%\n\n")
+
+brightT31MeanOriginal = mean(fireClean$bright_t31)
+brightT31MeanModified = mean(fireModified$bright_t31)
+brightT31MedianOriginal = median(fireClean$bright_t31)
+brightT31MedianModified = median(fireModified$bright_t31)
+
+cat("Overall Dataset Impact:\n")
+cat("  Clean Mean:", round(brightT31MeanOriginal, 2), "\n")
+cat("  Modified Mean:", round(brightT31MeanModified, 2), "\n")
+cat("  Difference:", round(brightT31MeanModified - brightT31MeanOriginal, 2), "\n")
+cat("  Clean Median:", round(brightT31MedianOriginal, 2), "\n")
+cat("  Modified Median:", round(brightT31MedianModified, 2), "\n")
+cat("  Difference:", round(brightT31MedianModified - brightT31MedianOriginal, 2), "\n\n")
+
+cat("Statistical comparision of frp\n")
+
+frpImputed = fireModified$frp[frpNaRows]
+frpActual = fireClean$frp[frpNaRows]
+
+frpAbsoluteDeviation = abs(frpImputed - frpActual)
+frpPercentDeviation = (frpAbsoluteDeviation / frpActual) * 100
+
+frpMeanDeviation = mean(frpAbsoluteDeviation)
+frpMedianDeviation = median(frpAbsoluteDeviation)
+frpMaxDeviation = max(frpAbsoluteDeviation)
+frpMinDeviation = min(frpAbsoluteDeviation)
+frpSdDeviation = sd(frpAbsoluteDeviation)
+
+cat("Mean of actual clean values:", round(mean(frpActual), 2), "\n")
+cat("Median of actual clean values:", round(median(frpActual), 2), "\n\n")
+
+cat("Deviation Statistics:\n")
+cat("  Mean Absolute Deviation:", round(frpMeanDeviation, 2), "\n")
+cat("  Median Absolute Deviation:", round(frpMedianDeviation, 2), "\n")
+cat("  Min Deviation:", round(frpMinDeviation, 2), "\n")
+cat("  Max Deviation:", round(frpMaxDeviation, 2), "\n")
+cat("  SD of Deviation:", round(frpSdDeviation, 2), "\n")
+cat("  Mean Percent Deviation:", round(mean(frpPercentDeviation), 2), "%\n\n")
+
+frpMeanOriginal = mean(fireClean$frp)
+frpMeanModified = mean(fireModified$frp)
+frpMedianOriginal = median(fireClean$frp)
+frpMedianModified = median(fireModified$frp)
+
+cat("Overall Dataset Impact:\n")
+cat("  Clean Mean:", round(frpMeanOriginal, 2), "\n")
+cat("  Modified Mean:", round(frpMeanModified, 2), "\n")
+cat("  Difference:", round(frpMeanModified - frpMeanOriginal, 2), "\n")
+cat("  Clean Median:", round(frpMedianOriginal, 2), "\n")
+cat("  Modified Median:", round(frpMedianModified, 2), "\n")
+cat("  Difference:", round(frpMedianModified - frpMedianOriginal, 2), "\n\n")
+
+
+brightnessComparisonDf = data.frame(
+  Index = 1:length(brightnessNaRows),
+  Imputed = brightnessImputed,
+  Actual = brightnessActual,
+  Deviation = brightnessAbsoluteDeviation
+)
+
+plot1 = ggplot(brightnessComparisonDf, aes(x = Actual, y = Imputed)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Brightness: Imputed vs Actual Values",
+       x = "Actual Clean Values",
+       y = "Imputed Values") +
+  theme_minimal()
+plot1
+
+plot2 = ggplot(brightnessComparisonDf, aes(x = Deviation)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(title = "Brightness: Distribution of Absolute Deviations",
+       x = "Absolute Deviation",
+       y = "Frequency") +
+  theme_minimal()
+plot2
+
+brightnessDistDf = data.frame(
+  Value = c(fireClean$brightness, fireModified$brightness),
+  Dataset = c(rep("Clean", nrow(fireClean)), rep("Modified", nrow(fireModified)))
+)
+
+plot3 = ggplot(brightnessDistDf, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Brightness: Distribution Comparison",
+       x = "Brightness Value",
+       y = "Density") +
+  theme_minimal()
+plot3
+
+
+confidenceComparisonDf = data.frame(
+  Index = 1:length(confidenceNaRows),
+  Imputed = confidenceImputed,
+  Actual = confidenceActual,
+  Deviation = confidenceAbsoluteDeviation
+)
+
+plot4 = ggplot(confidenceComparisonDf, aes(x = Actual, y = Imputed)) +
+  geom_point(alpha = 0.5, color = "darkgreen") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Confidence: Imputed vs Actual Values",
+       x = "Actual Clean Values",
+       y = "Imputed Values") +
+  theme_minimal()
+plot4
+
+plot5 = ggplot(confidenceComparisonDf, aes(x = Deviation)) +
+  geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+  labs(title = "Confidence: Distribution of Absolute Deviations",
+       x = "Absolute Deviation",
+       y = "Frequency") +
+  theme_minimal()
+plot5
+
+confidenceDistDf = data.frame(
+  Value = c(fireClean$confidence, fireModified$confidence),
+  Dataset = c(rep("Clean", nrow(fireClean)), rep("Modified", nrow(fireModified)))
+)
+
+plot6 = ggplot(confidenceDistDf, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Confidence: Distribution Comparison",
+       x = "Confidence Value",
+       y = "Density") +
+  theme_minimal()
+plot6
+
+
+brightT31ComparisonDf = data.frame(
+  Index = 1:length(brightT31NaRows),
+  Imputed = brightT31Imputed,
+  Actual = brightT31Actual,
+  Deviation = brightT31AbsoluteDeviation
+)
+
+plot7 = ggplot(brightT31ComparisonDf, aes(x = Actual, y = Imputed)) +
+  geom_point(alpha = 0.5, color = "purple") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Bright_T31: Imputed vs Actual Values",
+       x = "Actual Clean Values",
+       y = "Imputed Values") +
+  theme_minimal()
+plot7
+
+plot8 = ggplot(brightT31ComparisonDf, aes(x = Deviation)) +
+  geom_histogram(bins = 30, fill = "purple", color = "white") +
+  labs(title = "Bright_T31: Distribution of Absolute Deviations",
+       x = "Absolute Deviation",
+       y = "Frequency") +
+  theme_minimal()
+plot8
+
+brightT31DistDf = data.frame(
+  Value = c(fireClean$bright_t31, fireModified$bright_t31),
+  Dataset = c(rep("Clean", nrow(fireClean)), rep("Modified", nrow(fireModified)))
+)
+
+plot9 = ggplot(brightT31DistDf, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Bright_T31: Distribution Comparison",
+       x = "Bright_T31 Value",
+       y = "Density") +
+  theme_minimal()
+plot9
+
+
+frpComparisonDf = data.frame(
+  Index = 1:length(frpNaRows),
+  Imputed = frpImputed,
+  Actual = frpActual,
+  Deviation = frpAbsoluteDeviation
+)
+
+plot10 = ggplot(frpComparisonDf, aes(x = Actual, y = Imputed)) +
+  geom_point(alpha = 0.5, color = "orange") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "FRP: Imputed vs Actual Values",
+       x = "Actual Clean Values",
+       y = "Imputed Values") +
+  theme_minimal()
+plot10
+
+plot11 = ggplot(frpComparisonDf, aes(x = Deviation)) +
+  geom_histogram(bins = 30, fill = "orange", color = "white") +
+  labs(title = "FRP: Distribution of Absolute Deviations",
+       x = "Absolute Deviation",
+       y = "Frequency") +
+  theme_minimal()
+plot11
+
+frpDistDf = data.frame(
+  Value = c(fireClean$frp, fireModified$frp),
+  Dataset = c(rep("Clean", nrow(fireClean)), rep("Modified", nrow(fireModified)))
+)
+
+plot12 = ggplot(frpDistDf, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "FRP: Distribution Comparison",
+       x = "FRP Value",
+       y = "Density") +
+  theme_minimal()
+plot12
+
+
+write.csv(fireModified, "fire_2019_modified_numeric.csv", row.names = FALSE)
+
+# The imputation analysis was done for four numerical features. 
+# The results showed that the imputation method kept the dataset mostly unchanged. 
+# Brightness had a mean percent deviation of 2.87%. 
+# The imputed values stayed close to the actual ones but scattered more at higher values. 
+# Confidence had the biggest absolute deviations, with a maximum of 88.5. 
+# However, the median stayed the same, showing that the overall distribution did not shift. 
+# Bright_T31 showed the best performance with only 0.83% mean percent deviation and very little scatter. 
+# FRP was the most difficult variable. It had 82.65% mean percent deviation and large outliers up to 1239.2. 
+# This was expected since FRP values are usually skewed. 
+# Even though each feature behaved differently, the dataset as a whole stayed consistent. 
+# All four variables had mean differences of less than 0.54 and no median differences. 
+# This means the imputation filled missing values well 
+
+
+```
+
+
+```{r}
+
+#Task 2 c
+
+library(dplyr)
+library(ggplot2)
+
+
+fireDirty = read.csv("fire_2019_modified_numeric.csv")
+fireClean = read.csv("fire_2019_clean.csv")
+
+
+cat("Dirty data rows:", nrow(fireDirty), "\n")
+cat("Clean data rows:", nrow(fireClean), "\n\n")
+
+
+fireModified = fireDirty
+
+
+satelliteNaRows = which(is.na(fireModified$satellite))
+instrumentNaRows = which(is.na(fireModified$instrument))
+daynightNaRows = which(is.na(fireModified$daynight))
+
+cat("Rows with missing values:- n")
+cat("Satellite missing rows:", length(satelliteNaRows), "\n")
+cat("Instrument missing rows:", length(instrumentNaRows), "\n")
+cat("Daynight missing rows:", length(daynightNaRows), "\n\n")
+
+
+
+imputeLocalMode = function(x, window = 5) {
+  halfWindow = floor(window / 2)
+  naPositions = which(is.na(x))
+  
+  for (i in naPositions) {
+    start = max(1, i - halfWindow)
+    end = min(length(x), i + halfWindow)
+    
+    nearbyValues = x[start:end]
+    nearbyValues = nearbyValues[!is.na(nearbyValues)]
+    
+    if (length(nearbyValues) > 0) {
+      valueFrequency = table(nearbyValues)
+      modeValue = names(sort(valueFrequency, decreasing = TRUE))[1]
+      x[i] = modeValue
+    }
+  }
+  
+  return(x)
+}
+
+fireModified$satellite = imputeLocalMode(fireModified$satellite, window = 5)
+
+
+fireModified$instrument = imputeLocalMode(fireModified$instrument, window = 5)
+
+
+fireModified$daynight = imputeLocalMode(fireModified$daynight, window = 5)
+
+
+cat("Statistical comparision of satellite\n")
+
+
+satelliteImputed = fireModified$satellite[satelliteNaRows]
+satelliteActual = fireClean$satellite[satelliteNaRows]
+
+
+satelliteCorrect = sum(satelliteImputed == satelliteActual)
+satelliteIncorrect = sum(satelliteImputed != satelliteActual)
+satelliteAccuracy = (satelliteCorrect / length(satelliteImputed)) * 100
+
+cat("Total imputed values:", length(satelliteImputed), "\n")
+cat("Correct predictions:", satelliteCorrect, "\n")
+cat("Incorrect predictions:", satelliteIncorrect, "\n")
+cat("Accuracy:", round(satelliteAccuracy, 2), "%\n\n")
+
+
+cat("Frequency of imputed values:\n")
+satelliteImputedFreq = table(satelliteImputed)
+print(satelliteImputedFreq)
+
+cat("\nFrequency of actual values:\n")
+satelliteActualFreq = table(satelliteActual)
+print(satelliteActualFreq)
+
+
+cat("\nOverall Dataset Impact:\n")
+satelliteCleanFreq = table(fireClean$satellite)
+satelliteModifiedFreq = table(fireModified$satellite)
+
+cat("Clean dataset frequencies:\n")
+print(satelliteCleanFreq)
+cat("\nModified dataset frequencies:\n")
+print(satelliteModifiedFreq)
+
+
+satelliteCleanProp = prop.table(satelliteCleanFreq) * 100
+satelliteModifiedProp = prop.table(satelliteModifiedFreq) * 100
+
+cat("\nClean dataset proportions (%):\n")
+print(round(satelliteCleanProp, 2))
+cat("\nModified dataset proportions (%):\n")
+print(round(satelliteModifiedProp, 2))
+cat("\n")
+
+
+cat("Statistical comparision of instrument\n")
+
+
+instrumentImputed = fireModified$instrument[instrumentNaRows]
+instrumentActual = fireClean$instrument[instrumentNaRows]
+
+
+instrumentCorrect = sum(instrumentImputed == instrumentActual)
+instrumentIncorrect = sum(instrumentImputed != instrumentActual)
+instrumentAccuracy = (instrumentCorrect / length(instrumentImputed)) * 100
+
+cat("Total imputed values:", length(instrumentImputed), "\n")
+cat("Correct predictions:", instrumentCorrect, "\n")
+cat("Incorrect predictions:", instrumentIncorrect, "\n")
+cat("Accuracy:", round(instrumentAccuracy, 2), "%\n\n")
+
+
+cat("Frequency of imputed values:\n")
+instrumentImputedFreq = table(instrumentImputed)
+print(instrumentImputedFreq)
+
+cat("\nFrequency of actual values:\n")
+instrumentActualFreq = table(instrumentActual)
+print(instrumentActualFreq)
+
+
+cat("\nOverall Dataset Impact:\n")
+instrumentCleanFreq = table(fireClean$instrument)
+instrumentModifiedFreq = table(fireModified$instrument)
+
+cat("Clean dataset frequencies:\n")
+print(instrumentCleanFreq)
+cat("\nModified dataset frequencies:\n")
+print(instrumentModifiedFreq)
+
+
+instrumentCleanProp = prop.table(instrumentCleanFreq) * 100
+instrumentModifiedProp = prop.table(instrumentModifiedFreq) * 100
+
+cat("\nClean dataset proportions (%):\n")
+print(round(instrumentCleanProp, 2))
+cat("\nModified dataset proportions (%):\n")
+print(round(instrumentModifiedProp, 2))
+cat("\n")
+
+
+cat("Statistical comparision of daynight\n")
+
+
+daynightImputed = fireModified$daynight[daynightNaRows]
+daynightActual = fireClean$daynight[daynightNaRows]
+
+
+daynightCorrect = sum(daynightImputed == daynightActual)
+daynightIncorrect = sum(daynightImputed != daynightActual)
+daynightAccuracy = (daynightCorrect / length(daynightImputed)) * 100
+
+cat("Total imputed values:", length(daynightImputed), "\n")
+cat("Correct predictions:", daynightCorrect, "\n")
+cat("Incorrect predictions:", daynightIncorrect, "\n")
+cat("Accuracy:", round(daynightAccuracy, 2), "%\n\n")
+
+
+cat("Frequency of imputed values:\n")
+daynightImputedFreq = table(daynightImputed)
+print(daynightImputedFreq)
+
+cat("\nFrequency of actual values:\n")
+daynightActualFreq = table(daynightActual)
+print(daynightActualFreq)
+
+
+cat("\nOverall Dataset Impact:\n")
+daynightCleanFreq = table(fireClean$daynight)
+daynightModifiedFreq = table(fireModified$daynight)
+
+cat("Clean dataset frequencies:\n")
+print(daynightCleanFreq)
+cat("\nModified dataset frequencies:\n")
+print(daynightModifiedFreq)
+
+
+daynightCleanProp = prop.table(daynightCleanFreq) * 100
+daynightModifiedProp = prop.table(daynightModifiedFreq) * 100
+
+cat("\nClean dataset proportions (%):\n")
+print(round(daynightCleanProp, 2))
+cat("\nModified dataset proportions (%):\n")
+print(round(daynightModifiedProp, 2))
+cat("\n")
+
+
+
+satelliteConfusion = data.frame(
+  Actual = satelliteActual,
+  Imputed = satelliteImputed
+)
+
+
+satelliteFreqComparison = data.frame(
+  Category = rep(names(satelliteActualFreq), 2),
+  Count = c(as.numeric(satelliteActualFreq), as.numeric(satelliteImputedFreq)),
+  Type = rep(c("Actual", "Imputed"), each = length(satelliteActualFreq))
+)
+
+plot1 = ggplot(satelliteFreqComparison, aes(x = Category, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Satellite: Frequency Comparison (Imputed Rows Only)",
+       x = "Satellite Type",
+       y = "Count",
+       fill = "Data Type") +
+  theme_minimal()
+print(plot1)
+
+
+satelliteOverallComparison = data.frame(
+  Category = rep(names(satelliteCleanFreq), 2),
+  Count = c(as.numeric(satelliteCleanFreq), as.numeric(satelliteModifiedFreq)),
+  Dataset = rep(c("Clean", "Modified"), each = length(satelliteCleanFreq))
+)
+
+plot2 = ggplot(satelliteOverallComparison, aes(x = Category, y = Count, fill = Dataset)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Satellite: Overall Dataset Distribution",
+       x = "Satellite Type",
+       y = "Count",
+       fill = "Dataset") +
+  theme_minimal()
+print(plot2)
+
+
+satelliteAccuracyDf = data.frame(
+  Result = c("Correct", "Incorrect"),
+  Count = c(satelliteCorrect, satelliteIncorrect)
+)
+
+plot3 = ggplot(satelliteAccuracyDf, aes(x = "", y = Count, fill = Result)) +
+  geom_bar(stat = "identity", width = 1) +
+  labs(title = paste("Satellite Imputation Accuracy:", round(satelliteAccuracy, 2), "%"),
+       x = "",
+       y = "Count") +
+  theme_minimal()
+print(plot3)
+
+
+instrumentFreqComparison = data.frame(
+  Category = rep(names(instrumentActualFreq), 2),
+  Count = c(as.numeric(instrumentActualFreq), as.numeric(instrumentImputedFreq)),
+  Type = rep(c("Actual", "Imputed"), each = length(instrumentActualFreq))
+)
+
+plot4 = ggplot(instrumentFreqComparison, aes(x = Category, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Instrument: Frequency Comparison (Imputed Rows Only)",
+       x = "Instrument Type",
+       y = "Count",
+       fill = "Data Type") +
+  theme_minimal()
+print(plot4)
+
+
+instrumentOverallComparison = data.frame(
+  Category = rep(names(instrumentCleanFreq), 2),
+  Count = c(as.numeric(instrumentCleanFreq), as.numeric(instrumentModifiedFreq)),
+  Dataset = rep(c("Clean", "Modified"), each = length(instrumentCleanFreq))
+)
+
+plot5 = ggplot(instrumentOverallComparison, aes(x = Category, y = Count, fill = Dataset)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Instrument: Overall Dataset Distribution",
+       x = "Instrument Type",
+       y = "Count",
+       fill = "Dataset") +
+  theme_minimal()
+print(plot5)
+
+
+instrumentAccuracyDf = data.frame(
+  Result = c("Correct", "Incorrect"),
+  Count = c(instrumentCorrect, instrumentIncorrect)
+)
+
+plot6 = ggplot(instrumentAccuracyDf, aes(x = "", y = Count, fill = Result)) +
+  geom_bar(stat = "identity", width = 1) +
+  labs(title = paste("Instrument Imputation Accuracy:", round(instrumentAccuracy, 2), "%"),
+       x = "",
+       y = "Count") +
+  theme_minimal()
+print(plot6)
+
+
+daynightFreqComparison = data.frame(
+  Category = rep(names(daynightActualFreq), 2),
+  Count = c(as.numeric(daynightActualFreq), as.numeric(daynightImputedFreq)),
+  Type = rep(c("Actual", "Imputed"), each = length(daynightActualFreq))
+)
+
+plot7 = ggplot(daynightFreqComparison, aes(x = Category, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Daynight: Frequency Comparison (Imputed Rows Only)",
+       x = "Day/Night",
+       y = "Count",
+       fill = "Data Type") +
+  theme_minimal()
+print(plot7)
+
+
+daynightOverallComparison = data.frame(
+  Category = rep(names(daynightCleanFreq), 2),
+  Count = c(as.numeric(daynightCleanFreq), as.numeric(daynightModifiedFreq)),
+  Dataset = rep(c("Clean", "Modified"), each = length(daynightCleanFreq))
+)
+
+plot8 = ggplot(daynightOverallComparison, aes(x = Category, y = Count, fill = Dataset)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Daynight: Overall Dataset Distribution",
+       x = "Day/Night",
+       y = "Count",
+       fill = "Dataset") +
+  theme_minimal()
+print(plot8)
+
+
+daynightAccuracyDf = data.frame(
+  Result = c("Correct", "Incorrect"),
+  Count = c(daynightCorrect, daynightIncorrect)
+)
+
+plot9 = ggplot(daynightAccuracyDf, aes(x = "", y = Count, fill = Result)) +
+  geom_bar(stat = "identity", width = 1) +
+  labs(title = paste("Daynight Imputation Accuracy:", round(daynightAccuracy, 2), "%"),
+       x = "",
+       y = "Count") +
+  theme_minimal()
+print(plot9)
+
+
+overallAccuracyDf = data.frame(
+  Feature = c("Satellite", "Instrument", "Daynight"),
+  Accuracy = c(satelliteAccuracy, instrumentAccuracy, daynightAccuracy)
+)
+
+plot10 = ggplot(overallAccuracyDf, aes(x = Feature, y = Accuracy, fill = Feature)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Overall Imputation Accuracy for Categorical Features",
+       x = "Feature",
+       y = "Accuracy (%)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+print(plot10)
+
+
+write.csv(fireModified, "fire_2019_modified.csv", row.names = FALSE)
+
+# The local mode imputation method filled missing values for three categorical 
+# features with very high accuracy. For satellite, it reached 99.22 percent accuracy. 
+# It used a five-row window around each missing value and chose the most common category. 
+# For instrument, accuracy was 100 percent because all records used MODIS data. 
+# For day and night, accuracy was 99.61 percent, showing that it worked well even though 
+# the data was not balanced with 78 percent day and 22 percent night. 
+# The overall dataset stayed almost the same. The satellite proportion changed by only 
+# 0.03 percent and day and night by 0.01 percent. This shows that the imputation kept 
+# the original structure. The window-based method worked well because it used nearby data, 
+# which makes sense for fire detection data where nearby records often share similar 
+# satellite and time patterns.
+
+```
+
+```{r}
+
+# Task 2 d
+
+cleanData = read.csv("fire_2019_clean.csv")
+modifiedData = read.csv("fire_2019_modified.csv")
+
+xFeature = "brightness"
+yFeature = "confidence"
+
+
+ggplot(cleanData, aes_string(x = xFeature, y = yFeature)) +
+  geom_point(color = "blue", alpha = 0.4) +
+  geom_smooth(method = "lm", color = "darkblue", se = FALSE) +
+  labs(title = "Bivariate Analysis (Clean Data)",
+       x = xFeature,
+       y = yFeature) +
+  theme_minimal()
+
+
+ggplot(modifiedData, aes_string(x = xFeature, y = yFeature)) +
+  geom_point(color = "red", alpha = 0.4) +
+  geom_smooth(method = "lm", color = "darkred", se = FALSE) +
+  labs(title = "Bivariate Analysis (Modified Data)",
+       x = xFeature,
+       y = yFeature) +
+  theme_minimal()
+
+# The bivariate analysis of brightness and confidence shows how both variables relate 
+# in the clean and modified datasets. In the clean data, most values are grouped in the 
+# lower brightness range between 300 and 350, with confidence spread between 0 and 100. 
+# There is a weak positive trend between them. The modified data shows the same pattern 
+# and distribution, though it looks denser in the imputed areas. Both datasets share the 
+# same relationship. Confidence levels reach around 100 when brightness goes above 350, 
+# while lower brightness values show more variation. This pattern makes sense because 
+# brighter fires are detected with higher and more stable confidence. The regression lines 
+# in both plots follow the same path, showing that imputation did not change the relationship. 
+# The modified data kept the original pattern intact.
+
+```
+
+
+
+
